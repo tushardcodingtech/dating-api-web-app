@@ -16,7 +16,7 @@ var app = express();
 
 // Enable CORS (for React frontend on localhost:3000)
 app.use(cors({
-  origin: "http://localhost:3000",
+  origin: "https://dating-app-eight-mu.vercel.app",
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
