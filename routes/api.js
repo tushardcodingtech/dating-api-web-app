@@ -3,16 +3,7 @@ const router = express.Router();
 const FindProfile = require("../models/findProfile");
 const auth = require("../middleware/auth");
 
-// router.post("/people", async (req, res) => {
-//   try {
-//     const person = new FindProfile(req.body);
-//     await person.save(); 
-//     res.status(201).json(person);
-//   } catch (err) {
-//     res.status(400).json({ error: err.message });
-//   }
-// });
-
+// Create a new profile
 router.post("/people", auth, async (req, res) => {
   try {
     // Ensure each user can only create one profile
@@ -35,19 +26,6 @@ router.post("/people", auth, async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
-
-
-// Public endpoint - no auth required
-// router.get("/people", async (req, res) => {
-//   console.log('\n--- /api/people called (public) ---');
-  
-//   try {
-//     const profiles = await FindProfile.find({}).lean().populate("userId", "name");
-//     res.json(profiles);
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// });
 
 
 // Get all profiles except current user's (for finding matches)
