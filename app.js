@@ -4,6 +4,7 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var cors = require("cors");
 var createError = require('http-errors');
+const connectDB = require('./config/db');
 
 
 var indexRouter = require('./routes/index');
@@ -40,6 +41,12 @@ app.use("/api", apiRouter);
 app.use('/auth',authRouter );
 app.use('/messages', messagesRouter);
 
+connectDB().then(() => {
+  console.log('MongoDB connected successfully');
+}).catch(err => {
+  console.error('Failed to connect to MongoDB', err);
+  process.exit(1);
+});
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
