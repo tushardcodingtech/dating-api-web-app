@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const FindProfile = require("../models/findProfile");
+const FindProfile = require("../models/FindProfile");
 const auth = require("../middleware/auth");
 
 // Create a new profile
