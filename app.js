@@ -14,12 +14,16 @@ const messagesRouter = require("./routes/messages");
 
 var app = express();
 
-// Enable CORS (for React frontend on localhost:3000)
-app.use(cors({
+const corsOptions = {
   origin: "https://dating-app-eight-mu.vercel.app",
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
-}));
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions)); // handle preflight requests
+
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
