@@ -31,8 +31,8 @@ router.get("/:userId", auth, async (req, res) => {
   try {
     const messages = await Message.find({
       $or: [
-        { sender: req.user.userId, receiver: req.params.userId, text: { $ne: "" }, createdAt: { $exists: true } },
-        { sender: req.params.userId, receiver: req.user.userId, text: { $ne: "" }, createdAt: { $exists: true } }
+        { sender: req.user.userId, receiver: req.params.userId, text: { $exists: true }, createdAt: { $exists: true } },
+        { sender: req.params.userId, receiver: req.user.userId, text: { $exists: true }, createdAt: { $exists: true } }
       ]
     }).sort({ createdAt: 1 });
 

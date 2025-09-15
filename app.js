@@ -15,11 +15,28 @@ const messagesRouter = require("./routes/messages");
 
 var app = express();
 
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://dating-app-eight-mu.vercel.app"
+];
+
 const corsOptions = {
-  origin: "https://dating-app-eight-mu.vercel.app",
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log("Blocked by CORS:", origin);
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 };
 
 app.use(cors(corsOptions));
