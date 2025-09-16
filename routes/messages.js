@@ -27,9 +27,14 @@ router.post("/", auth, async (req, res) => {
     res.status(500).json({ message: "Error sending message", error: err.message });
   }
 });
+
 // routes/messageRoutes.js
+// In your backend route
 router.get("/match/:matchId", auth, async (req, res) => {
   try {
+    console.log("Fetching messages for match:", req.params.matchId);
+    console.log("Current user ID:", req.user.userId);
+    
     const messages = await Message.find({
       $or: [
         { sender: req.user.userId, receiver: req.params.matchId },
@@ -37,9 +42,11 @@ router.get("/match/:matchId", auth, async (req, res) => {
       ]
     }).sort({ createdAt: 1 });
 
+    console.log("Found messages:", messages);
     res.json(messages);
   } catch (err) {
-    res.status(500).json({ message: "Error fetching messages" });
+    console.error("Error fetching messages:", err);
+    res.status(500).json({ message: "Error fetching messages", error: err.message });
   }
 });
 
