@@ -27,12 +27,13 @@ router.post("/", auth, async (req, res) => {
     res.status(500).json({ message: "Error sending message", error: err.message });
   }
 });
-router.get("/:userId", auth, async (req, res) => {
+// routes/messageRoutes.js
+router.get("/match/:matchId", auth, async (req, res) => {
   try {
     const messages = await Message.find({
       $or: [
-        { sender: req.user.userId, receiver: req.params.userId },
-        { sender: req.params.userId, receiver: req.user.userId }
+        { sender: req.user.userId, receiver: req.params.matchId },
+        { sender: req.params.matchId, receiver: req.user.userId }
       ]
     }).sort({ createdAt: 1 });
 
@@ -40,7 +41,7 @@ router.get("/:userId", auth, async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: "Error fetching messages" });
   }
-}); 
+});
 
 
 module.exports = router;
