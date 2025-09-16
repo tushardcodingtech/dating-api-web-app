@@ -85,6 +85,42 @@ router.put("/profile/me", auth, async (req, res) => {
     res.status(500).json({ error: "Failed to update profile" });
   }
 });
+// Add new route to get match details by ID
+router.get("/matches/:matchId", auth, async (req, res) => {
+  try {
+    // Find the match by ID
+    const match = await FindProfile.findById(req.params.matchId)
+      .populate("userId", "name email"); // Populate user details
+
+    if (!match) {
+      return res.status(404).json({ message: "Match not found" });
+    }
+
+    // Return the match details including the user ID
+    res.json({
+      _id: match._id,
+      userId: match.userId._id,  // The user ID of the matched profile
+      user: {
+        _id: match.userId._id,
+        name: match.userId.name,
+        email: match.userId.email
+      },
+      age: match.age,
+      location: match.location,
+      bio: match.bio,
+      image: match.image,
+      createdAt: match.createdAt
+    });
+  } catch (err) {
+    console.error("Error fetching match details:", err);
+    res.status(500).json({ 
+      error: "Failed to fetch match details",
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+});
+
+
 
 
 module.exports = router;
