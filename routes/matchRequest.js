@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const MatchRequest = require('../models/MatchRequest');
+const Match = require("../models/Match");
 
 // Send a match request
 router.post("/", auth, async (req, res) => {
@@ -37,16 +38,35 @@ router.post("/:id/accept", auth, async (req, res) => {
     const request = await MatchRequest.findById(req.params.id);
     if (!request) return res.status(404).json({ message: "Request not found" });
 
-    if (request.receiver.toString() !== req.user.userId)
+    // Only receiver can accept
+    if (request.receiver.toString() !== req.user.userId) {
       return res.status(403).json({ message: "Not allowed" });
+    }
 
+    // Update request status
     request.status = "accepted";
     await request.save();
-    res.json(request);
+
+    // Check if match already exists
+    let match = await Match.findOne({
+      users: { $all: [request.sender, request.receiver] },
+    });
+    // If not, create a new match
+    if (!match) {
+      match = new Match({
+        users: [request.sender, request.receiver],
+        createdAt: new Date(),
+      });
+      await match.save();
+    }
+    res.json({ message: "Request accepted", request, match });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
+
+module.exports = router;
+
 
 // Reject a match request
 router.post("/:id/reject", auth, async (req, res) => {
