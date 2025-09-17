@@ -12,6 +12,7 @@ var usersRouter = require('./routes/users');
 var apiRouter = require("./routes/api");
 var authRouter = require('./routes/auth');
 const messagesRouter = require("./routes/messages");
+const matchRequestRouter = require('./routes/matchRequest');
 var app = express();
 
 const allowedOrigins = [
@@ -56,6 +57,7 @@ app.use('/users', usersRouter);
 app.use("/api", apiRouter);
 app.use('/auth',authRouter );
 app.use('/messages', messagesRouter);
+app.use('/match-requests', matchRequestRouter);
 
 connectDB().then(() => {
   console.log('MongoDB connected successfully');
