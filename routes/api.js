@@ -96,10 +96,24 @@ router.get("/matches/:matchId", auth, async (req, res) => {
     }
 
     // Return the match details including the user ID
-    res.json({ match });
+    res.json({
+      _id: match._id,
+      userId: match.userId._id,  // The user ID of the matched profile
+      user: {
+        _id: match.userId._id,
+        name: match.userId.name,
+        email: match.userId.email
+      },
+      age: match.age,
+      location: match.location,
+      bio: match.bio,
+      image: match.image,
+      createdAt: match.createdAt
+    });
   } catch (err) {
     console.error("Error fetching match details:", err);
-    res.status(500).json({ error: "Failed to fetch match details",
+    res.status(500).json({ 
+      error: "Failed to fetch match details",
       details: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
   }
