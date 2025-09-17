@@ -50,7 +50,6 @@ router.get("/profile/me", auth, async (req, res) => {
     if (!profile) {
       return res.status(404).json({ message: 'Profile not found' });
     }
-    
     res.json(profile);
   } catch (err) {
     console.error('Error fetching user profile:', err);
@@ -65,7 +64,7 @@ router.get("/profile/me", auth, async (req, res) => {
 router.put("/profile/me", auth, async (req, res) => {
   try {
     const updatedProfile = await FindProfile.findOneAndUpdate(
-      { userId: req.user.userId },  // ensure only their profile updates
+      { userId: req.user.userId },  // ensure only user profile updates
       {
         age: req.body.age,
         location: req.body.location,
@@ -97,24 +96,10 @@ router.get("/matches/:matchId", auth, async (req, res) => {
     }
 
     // Return the match details including the user ID
-    res.json({
-      _id: match._id,
-      userId: match.userId._id,  // The user ID of the matched profile
-      user: {
-        _id: match.userId._id,
-        name: match.userId.name,
-        email: match.userId.email
-      },
-      age: match.age,
-      location: match.location,
-      bio: match.bio,
-      image: match.image,
-      createdAt: match.createdAt
-    });
+    res.json({ match });
   } catch (err) {
     console.error("Error fetching match details:", err);
-    res.status(500).json({ 
-      error: "Failed to fetch match details",
+    res.status(500).json({ error: "Failed to fetch match details",
       details: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
   }
