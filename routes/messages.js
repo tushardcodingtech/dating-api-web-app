@@ -32,42 +32,14 @@ router.post("/", auth, async (req, res) => {
 // Get messages for a match
 router.get("/match/:matchId", auth, async (req, res) => {
   try {
-    const { matchId } = req.params;
-    const currentUserId = req.user.userId?.toString();
-
-    // 1) Find the match and ensure current user is a participant
-    const match = await Match.findById(matchId);
-    if (!match) {
-      return res.status(404).json({ message: "Match not found" });
-    }
-
-    const usersInMatch = match.users.map((u) => u.toString());
-    if (!usersInMatch.includes(currentUserId)) {
-      return res.status(403).json({ message: "You are not a participant in this match" });
-    }
-
-    // 2) Resolve the other participant
-    const otherUserId = usersInMatch.find((u) => u !== currentUserId);
-
-    // 3) Fetch messages between the two users
     const messages = await Message.find({
       $or: [
-        { sender: currentUserId, receiver: otherUserId },
-        { sender: otherUserId, receiver: currentUserId }
+        { sender: req.user.userId, receiver: req.params.matchId },
+        { sender: req.params.matchId, receiver: req.user.userId }
       ]
-    })
-      .sort({ createdAt: 1 })
-      .populate("sender", "name email")
-      .populate("receiver", "name email");
+    }).sort({ createdAt: 1 });
 
-    res.json({
-      matchId,
-      participants: {
-        me: currentUserId,
-        other: otherUserId,
-      },
-      messages,
-    });
+    res.json(messages);
   } catch (err) {
     console.error("Error fetching messages:", err);
     res.status(500).json({ message: "Error fetching messages", error: err.message });
@@ -76,3 +48,4 @@ router.get("/match/:matchId", auth, async (req, res) => {
 
 
 module.exports = router;
+
