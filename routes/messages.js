@@ -32,34 +32,36 @@ router.post("/", auth, async (req, res) => {
 // Get messages for a match
 router.get("/match/:matchId", auth, async (req, res) => {
   try {
-    const match = await Match.findById(req.params.matchId);
-    if (!match) {
-      return res.status(404).json({ message: "Match not found" });
-    }
+    const match = await Match.findById(req.params.matchId).populate("users", "name");
+    if (!match) return res.status(404).json({ message: "Match not found" });
 
-    // Find the "other" user in the match
-    const otherUserId = match.users.find(
-      (u) => u.toString() !== req.user.userId
-    );
+    const otherUser = match.users.find(u => u._id.toString() !== req.user.userId);
+    const profile = await Profile.findOne({ userId: otherUser._id });
 
-    if (!otherUserId) {
-      return res.status(400).json({ message: "No other user found in match" });
-    }
-
-    // Fetch messages between logged-in user and other user
     const messages = await Message.find({
       $or: [
-        { sender: req.user.userId, receiver: otherUserId },
-        { sender: otherUserId, receiver: req.user.userId }
+        { sender: req.user.userId, receiver: otherUser._id },
+        { sender: otherUser._id, receiver: req.user.userId }
       ]
     }).sort({ createdAt: 1 });
 
-    res.json(messages);
+    res.json({
+      otherUser: {
+        id: otherUser._id,
+        name: otherUser.name,
+        age: profile?.age,
+        location: profile?.location,
+        bio: profile?.bio,
+        image: profile?.image,
+      },
+      messages
+    });
   } catch (err) {
     console.error("Error fetching messages:", err);
     res.status(500).json({ message: "Error fetching messages", error: err.message });
   }
 });
+
 
 module.exports = router;
 
