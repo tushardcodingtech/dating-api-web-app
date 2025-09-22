@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const Message = require("../models/message");
+const Match = require("../models/Match");
 const auth = require("../middleware/auth");
 
 // Send a message
@@ -28,16 +29,24 @@ router.post("/", auth, async (req, res) => {
   }
 });
 
-// routes/messageRoutes.js
+// Get messages for a match
 router.get("/match/:matchId", auth, async (req, res) => {
   try {
     const match = await Match.findById(req.params.matchId);
-    if (!match) return res.status(404).json({ message: "Match not found" });
+    if (!match) {
+      return res.status(404).json({ message: "Match not found" });
+    }
 
+    // Find the "other" user in the match
     const otherUserId = match.users.find(
       (u) => u.toString() !== req.user.userId
     );
 
+    if (!otherUserId) {
+      return res.status(400).json({ message: "No other user found in match" });
+    }
+
+    // Fetch messages between logged-in user and other user
     const messages = await Message.find({
       $or: [
         { sender: req.user.userId, receiver: otherUserId },
@@ -48,10 +57,9 @@ router.get("/match/:matchId", auth, async (req, res) => {
     res.json(messages);
   } catch (err) {
     console.error("Error fetching messages:", err);
-    res.status(500).json({ message: "Error fetching messages" });
+    res.status(500).json({ message: "Error fetching messages", error: err.message });
   }
 });
 
-
-
 module.exports = router;
+
