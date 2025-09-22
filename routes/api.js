@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const FindProfile = require("../models/FindProfile");
 const auth = require("../middleware/auth");
+const Match = require("../models/Match");
 
 // Create a new profile
 router.post("/people", auth, async (req, res) => {
@@ -84,31 +85,53 @@ router.put("/profile/me", auth, async (req, res) => {
     res.status(500).json({ error: "Failed to update profile" });
   }
 });
+
 // Add new route to get match details by ID
 router.get("/matches/:matchId", auth, async (req, res) => {
   try {
-    // Find the match by ID
-    const match = await FindProfile.findById(req.params.matchId)
-      .populate("userId", "name email"); // Populate user details
+    const { matchId } = req.params;
 
+    // 1) Find the match by ID
+    const match = await Match.findById(matchId);
     if (!match) {
       return res.status(404).json({ message: "Match not found" });
     }
 
-    // Return the match details including the user ID
+    // 2) Ensure the current user is part of the match
+    const currentUserId = req.user.userId?.toString();
+    const usersInMatch = match.users.map((u) => u.toString());
+    if (!usersInMatch.includes(currentUserId)) {
+      return res.status(403).json({ message: "You are not a participant in this match" });
+    }
+
+    // 3) Determine the other user in the match
+    const otherUserId = usersInMatch.find((u) => u !== currentUserId);
+    if (!otherUserId) {
+      return res.status(400).json({ message: "Invalid match participants" });
+    }
+
+    // 4) Fetch the other user's profile and basic user details
+    const otherProfile = await FindProfile.findOne({ userId: otherUserId })
+      .populate("userId", "name email");
+
+    if (!otherProfile) {
+      return res.status(404).json({ message: "Profile for matched user not found" });
+    }
+
+    // 5) Return the matched user's profile details in a consistent shape
     res.json({
-      _id: match._id,
-      userId: match.userId._id,  // The user ID of the matched profile
+      _id: otherProfile._id,
+      userId: otherProfile.userId._id,
       user: {
-        _id: match.userId._id,
-        name: match.userId.name,
-        email: match.userId.email
+        _id: otherProfile.userId._id,
+        name: otherProfile.userId.name,
+        email: otherProfile.userId.email,
       },
-      age: match.age,
-      location: match.location,
-      bio: match.bio,
-      image: match.image,
-      createdAt: match.createdAt
+      age: otherProfile.age,
+      location: otherProfile.location,
+      bio: otherProfile.bio,
+      image: otherProfile.image,
+      createdAt: otherProfile.createdAt,
     });
   } catch (err) {
     console.error("Error fetching match details:", err);
@@ -118,8 +141,5 @@ router.get("/matches/:matchId", auth, async (req, res) => {
     });
   }
 });
-
-
-
 
 module.exports = router;
