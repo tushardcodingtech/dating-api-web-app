@@ -32,30 +32,14 @@ router.post("/", auth, async (req, res) => {
 // Get messages for a match
 router.get("/match/:matchId", auth, async (req, res) => {
   try {
-    const match = await Match.findById(req.params.matchId).populate("users", "name");
-    if (!match) return res.status(404).json({ message: "Match not found" });
-
-    const otherUser = match.users.find(u => u._id.toString() !== req.user.userId);
-    const profile = await Profile.findOne({ userId: otherUser._id });
-
     const messages = await Message.find({
       $or: [
-        { sender: req.user.userId, receiver: otherUser._id },
-        { sender: otherUser._id, receiver: req.user.userId }
+        { sender: req.user.userId, receiver: req.params.matchId },
+        { sender: req.params.matchId, receiver: req.user.userId }
       ]
     }).sort({ createdAt: 1 });
 
-    res.json({
-      otherUser: {
-        id: otherUser._id,
-        name: otherUser.name,
-        age: profile?.age,
-        location: profile?.location,
-        bio: profile?.bio,
-        image: profile?.image,
-      },
-      messages
-    });
+    res.json(messages);
   } catch (err) {
     console.error("Error fetching messages:", err);
     res.status(500).json({ message: "Error fetching messages", error: err.message });
