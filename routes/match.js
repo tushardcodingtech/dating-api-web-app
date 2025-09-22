@@ -47,4 +47,32 @@ router.get("/", auth, async (req, res) => {
   }
 });
 
+// Get messages for a match
+router.get("/match/:matchId", auth, async (req, res) => {
+  try {
+    // Find the match document
+    const match = await Match.findById(req.params.matchId);
+    if (!match) return res.status(404).json({ message: "Match not found" });
+
+    // Determine the other user's ID
+    const otherUserId = match.users.find(
+      (u) => u.toString() !== req.user.userId
+    );
+    if (!otherUserId) return res.status(404).json({ message: "Other user not found" });
+
+    // Fetch messages with that user
+    const messages = await Message.find({
+      $or: [
+        { sender: req.user.userId, receiver: otherUserId },
+        { sender: otherUserId, receiver: req.user.userId },
+      ],
+    }).sort({ createdAt: 1 });
+
+    res.json({ messages, otherUserId });
+  } catch (err) {
+    console.error("Error fetching messages:", err);
+    res.status(500).json({ message: "Error fetching messages", error: err.message });
+  }
+});
+
 module.exports = router;

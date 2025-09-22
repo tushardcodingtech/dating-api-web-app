@@ -39,7 +39,11 @@ router.get("/match/:matchId", auth, async (req, res) => {
       ]
     }).sort({ createdAt: 1 });
 
-    res.json(messages);
+    res.json({
+  messages,
+  otherUserId: req.params.matchId
+});
+
   } catch (err) {
     console.error("Error fetching messages:", err);
     res.status(500).json({ message: "Error fetching messages", error: err.message });
