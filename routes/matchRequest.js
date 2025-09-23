@@ -89,33 +89,14 @@ router.get("/pending", auth, async (req, res) => {
   try {
     const requests = await MatchRequest.find({
       receiver: req.user.userId,
-      status: "pending",
-    }).populate("sender", "name"); // populate sender's name
+      status: "pending"
+    }).populate("sender", "name image"); // get sender's name & image
 
-    const result = await Promise.all(
-      requests.map(async (reqItem) => {
-        const profile = await FindProfile.findOne({ userId: reqItem.sender._id });
-
-        return {
-          _id: reqItem._id,
-          sender: {
-            id: reqItem.sender._id,
-            name: reqItem.sender.name,
-            age: profile?.age || null,
-            location: profile?.location || null,
-            bio: profile?.bio || null,
-            image: profile?.image || null,
-          },
-        };
-      })
-    );
-
-    res.json(result);
+    res.json(requests);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
-
 
 
 module.exports = router;
