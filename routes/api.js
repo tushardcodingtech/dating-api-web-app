@@ -2,31 +2,93 @@ const express = require("express");
 const router = express.Router();
 const FindProfile = require("../models/FindProfile");
 const auth = require("../middleware/auth");
+const upload = require("../middleware/upload"); // Import upload middleware
+const fs = require('fs');
+const path = require('path');
 
-// Create a new profile
-router.post("/people", auth, async (req, res) => {
+// Create a new profile with image upload
+router.post("/people", auth, upload.single('image'), async (req, res) => {
   try {
     // Ensure each user can only create one profile
     const existing = await FindProfile.findOne({ userId: req.user.userId });
     if (existing) {
+      // If there's an uploaded file, delete it since we're not using it
+      if (req.file) {
+        fs.unlinkSync(req.file.path);
+      }
       return res.status(400).json({ message: "Profile already exists" });
     }
 
     const person = new FindProfile({
-      userId: req.user.userId, // attach logged-in user
+      userId: req.user.userId,
       age: req.body.age,
       location: req.body.location,
       bio: req.body.bio,
-      image: req.body.image,
+      image: req.file ? `/uploads/${req.file.filename}` : null, // Store file path
     });
 
     await person.save();
     res.status(201).json(person);
   } catch (err) {
+    // Delete uploaded file if error occurs
+    if (req.file) {
+      fs.unlinkSync(req.file.path);
+    }
     res.status(400).json({ error: err.message });
   }
 });
 
+// Update current user's profile with image upload
+router.put("/profile/me", auth, upload.single('image'), async (req, res) => {
+  try {
+    // Find existing profile to handle image deletion
+    const existingProfile = await FindProfile.findOne({ userId: req.user.userId });
+    
+    if (!existingProfile) {
+      if (req.file) {
+        fs.unlinkSync(req.file.path);
+      }
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    // Store old image path for deletion
+    const oldImagePath = existingProfile.image;
+
+    const updateData = {
+      age: req.body.age,
+      location: req.body.location,
+      bio: req.body.bio,
+    };
+
+    // If new image uploaded, update image path
+    if (req.file) {
+      updateData.image = `/uploads/${req.file.filename}`;
+    }
+
+    const updatedProfile = await FindProfile.findOneAndUpdate(
+      { userId: req.user.userId },
+      updateData,
+      { new: true, runValidators: true }
+    ).populate("userId", "name email");
+
+    // Delete old image file if it exists and new image was uploaded
+    if (req.file && oldImagePath && !oldImagePath.startsWith('http')) {
+      const fullOldPath = path.join(__dirname, '..', oldImagePath);
+      if (fs.existsSync(fullOldPath)) {
+        fs.unlinkSync(fullOldPath);
+      }
+    }
+
+    res.json(updatedProfile);
+  } catch (err) {
+    // Delete uploaded file if error occurs
+    if (req.file) {
+      fs.unlinkSync(req.file.path);
+    }
+    console.error("Error updating profile:", err);
+    res.status(500).json({ error: "Failed to update profile" });
+  }
+});
 
 // Get all profiles except current user's (for finding matches)
 router.get("/people", auth, async (req, res) => {
@@ -34,7 +96,14 @@ router.get("/people", auth, async (req, res) => {
     const people = await FindProfile.find({
       userId: { $ne: req.user.userId }
     }).populate("userId", "name");
-    res.json(people);
+    
+    const peopleWithFullImageUrls = people.map(person => ({
+      ...person.toObject(),
+      image: person.image ? `${req.protocol}://${req.get('host')}${person.image}` : null    // Convert image paths to full URLs
+
+    }));
+    
+    res.json(peopleWithFullImageUrls);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -50,7 +119,13 @@ router.get("/profile/me", auth, async (req, res) => {
     if (!profile) {
       return res.status(404).json({ message: 'Profile not found' });
     }
-    res.json(profile);
+    const profileWithFullImageUrl = {
+      ...profile.toObject(),
+      image: profile.image ? `${req.protocol}://${req.get('host')}${profile.image}` : null    // Convert image path to full URL
+
+    };
+
+    res.json(profileWithFullImageUrl);
   } catch (err) {
     console.error('Error fetching user profile:', err);
     res.status(500).json({ 
@@ -60,45 +135,19 @@ router.get("/profile/me", auth, async (req, res) => {
   }
 });
 
-// Update current user's profile
-router.put("/profile/me", auth, async (req, res) => {
-  try {
-    const updatedProfile = await FindProfile.findOneAndUpdate(
-      { userId: req.user.userId },  // ensure only user profile updates
-      {
-        age: req.body.age,
-        location: req.body.location,
-        bio: req.body.bio,
-        image: req.body.image,
-      },
-      { new: true, runValidators: true }
-    ).populate("userId", "name email");
-
-    if (!updatedProfile) {
-      return res.status(404).json({ message: "Profile not found" });
-    }
-
-    res.json(updatedProfile);
-  } catch (err) {
-    console.error("Error updating profile:", err);
-    res.status(500).json({ error: "Failed to update profile" });
-  }
-});
 // Add new route to get match details by ID
 router.get("/matches/:matchId", auth, async (req, res) => {
   try {
-    // Find the match by ID
     const match = await FindProfile.findById(req.params.matchId)
-      .populate("userId", "name email"); // Populate user details
+      .populate("userId", "name email");
 
     if (!match) {
       return res.status(404).json({ message: "Match not found" });
     }
-
-    // Return the match details including the user ID
-    res.json({
+    
+    const matchWithFullImageUrl = {
       _id: match._id,
-      userId: match.userId._id,  // The user ID of the matched profile
+      userId: match.userId._id,
       user: {
         _id: match.userId._id,
         name: match.userId.name,
@@ -107,9 +156,11 @@ router.get("/matches/:matchId", auth, async (req, res) => {
       age: match.age,
       location: match.location,
       bio: match.bio,
-      image: match.image,
+      image: match.image ? `${req.protocol}://${req.get('host')}${match.image}` : null, // Convert image path to full URL
       createdAt: match.createdAt
-    });
+    };
+
+    res.json(matchWithFullImageUrl);
   } catch (err) {
     console.error("Error fetching match details:", err);
     res.status(500).json({ 
@@ -119,7 +170,7 @@ router.get("/matches/:matchId", auth, async (req, res) => {
   }
 });
 
-
-
+// Serve uploaded images statically
+router.use('/uploads', express.static('uploads'));
 
 module.exports = router;
