@@ -3,6 +3,7 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const MatchRequest = require('../models/MatchRequest');
 const Match = require("../models/Match");
+const FindProfile = require("../models/FindProfile");
 
 // Send a match request
 router.post("/", auth, async (req, res) => {
@@ -65,8 +66,6 @@ router.post("/:id/accept", auth, async (req, res) => {
   }
 });
 
-module.exports = router;
-
 
 // Reject a match request
 router.post("/:id/reject", auth, async (req, res) => {
@@ -84,19 +83,44 @@ router.post("/:id/reject", auth, async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+
 // Get all match requests for the logged-in user
 router.get("/pending", auth, async (req, res) => {
   try {
     const requests = await MatchRequest.find({
       receiver: req.user.userId,
       status: "pending"
-    }).populate("sender", "name image"); // get sender's name & image
+    }).populate("sender", "name"); // only basic user info first
 
-    res.json(requests);
+    const result = [];
+
+    for (const reqItem of requests) {
+      const sender = reqItem.sender;
+
+      // get sender's profile
+      const profile = await FindProfile.findOne({ userId: sender._id });
+
+      result.push({
+        _id: reqItem._id,
+        sender: {
+          id: sender._id,
+          name: sender.name,
+          age: profile?.age || null,
+          location: profile?.location || null,
+          bio: profile?.bio || null,
+          image: profile?.image || null,
+        },
+        status: reqItem.status,
+      });
+    }
+
+    res.json(result);
   } catch (err) {
+    console.error("Error fetching pending requests:", err);
     res.status(500).json({ message: err.message });
   }
 });
+
 
 
 module.exports = router;
