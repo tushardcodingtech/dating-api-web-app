@@ -39,30 +39,20 @@ router.post("/people", auth, upload.single('image'), async (req, res) => {
 });
 
 // Update current user's profile with image upload
-router.put("/profile/me", auth, upload.single('image'), async (req, res) => {
+// Temporary fix - handle base64 images
+router.put("/profile/me", auth, async (req, res) => {
   try {
-    // Find existing profile to handle image deletion
-    const existingProfile = await FindProfile.findOne({ userId: req.user.userId });
-    
-    if (!existingProfile) {
-      if (req.file) {
-        fs.unlinkSync(req.file.path);
-      }
-      return res.status(404).json({ message: "Profile not found" });
-    }
-
-    // Store old image path for deletion
-    const oldImagePath = existingProfile.image;
-
     const updateData = {
       age: req.body.age,
       location: req.body.location,
       bio: req.body.bio,
     };
 
-    // If new image uploaded, update image path
-    if (req.file) {
-      updateData.image = `/uploads/${req.file.filename}`;
+    // Handle base64 image if provided
+    if (req.body.image && req.body.image.startsWith('data:image')) {
+      // You could convert base64 to URL or store as string
+      // For now, we'll just store it as string (not recommended for production)
+      updateData.image = req.body.image;
     }
 
     const updatedProfile = await FindProfile.findOneAndUpdate(
@@ -71,20 +61,12 @@ router.put("/profile/me", auth, upload.single('image'), async (req, res) => {
       { new: true, runValidators: true }
     ).populate("userId", "name email");
 
-    // Delete old image file if it exists and new image was uploaded
-    if (req.file && oldImagePath && !oldImagePath.startsWith('http')) {
-      const fullOldPath = path.join(__dirname, '..', oldImagePath);
-      if (fs.existsSync(fullOldPath)) {
-        fs.unlinkSync(fullOldPath);
-      }
+    if (!updatedProfile) {
+      return res.status(404).json({ message: "Profile not found" });
     }
 
     res.json(updatedProfile);
   } catch (err) {
-    // Delete uploaded file if error occurs
-    if (req.file) {
-      fs.unlinkSync(req.file.path);
-    }
     console.error("Error updating profile:", err);
     res.status(500).json({ error: "Failed to update profile" });
   }
