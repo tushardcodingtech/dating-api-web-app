@@ -1,8 +1,10 @@
 const mongoose = require("mongoose");
 const Gift = require("./models/Gift");
+require("dotenv").config();
 
+const MONGODB_URI = process.env.DATABASE_URL;
 // MongoDB connection string
-mongoose.connect("mongodb://localhost:27017/yourdbname", {
+mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
