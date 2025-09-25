@@ -2,6 +2,7 @@ const express = require("express");
 const Gift = require("../models/Gift");
 const UserGift = require("../models/UserGift");
 const router = express.Router();
+const authmiddleware = require("../middleware/auth");
 
 // Get all gifts
 router.get("/", async (req, res) => {
@@ -10,7 +11,7 @@ router.get("/", async (req, res) => {
 });
 
 // Send a gift
-router.post("/send", async (req, res) => {
+router.post("/send", authmiddleware, async (req, res) => {
   try {
     const { giftId, receiverId } = req.body;
     const senderId = req.user.id; 
@@ -23,6 +24,7 @@ router.post("/send", async (req, res) => {
 
     res.json({ message: "Gift sent successfully!", gift: userGift });
   } catch (error) {
+    console.error("Send gift error:", error);
     res.status(500).json({ error: "Failed to send gift" });
   }
 });
