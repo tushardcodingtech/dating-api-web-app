@@ -14,9 +14,10 @@ var authRouter = require('./routes/auth');
 const messagesRouter = require("./routes/messages");
 const matchRequestRouter = require('./routes/matchRequest');
 const matchRouter = require('./routes/match'); 
+const giftRouter = require('./routes/gift');
 var app = express();
 
-const allowedOrigins = [
+const allowedOrigins  = [
   "http://localhost:3000",
   "https://dating-app-eight-mu.vercel.app"
 ];
@@ -59,7 +60,8 @@ app.use("/api", apiRouter);
 app.use('/auth',authRouter );
 app.use('/messages', messagesRouter);
 app.use('/match-requests', matchRequestRouter);
-app.use('/matches', matchRouter); 
+app.use('/matches', matchRouter);
+app.use('/gifts', giftRouter); 
 
 connectDB().then(() => {
   console.log('MongoDB connected successfully');
