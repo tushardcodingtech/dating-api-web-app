@@ -14,13 +14,28 @@ router.get("/", async (req, res) => {
 router.post("/send", authmiddleware, async (req, res) => {
   try {
     const { giftId, receiverId } = req.body;
-    const senderId = req.user.id; 
+    const senderId = req.user.id;
 
-    const userGift = await UserGift.create({
-      giftId,
-      senderId,
-      receiverId,
-    });
+    if (!giftId || !receiverId) {
+      return res.status(400).json({ error: "Gift and receiver are required" });
+    }
+
+    const gift = await Gift.findById(giftId);
+    if (!gift) return res.status(404).json({ error: "Gift not found" });
+
+    const userGift = await UserGift.create({ giftId, senderId, receiverId });
+
+    // WebSocket notification
+    if (req.wss) {
+      req.wss.clients.forEach(client => {
+        if (client.readyState === 1) {
+          client.send(JSON.stringify({
+            type: "NEW_GIFT",
+            data: { giftId, senderId, receiverId }
+          }));
+        }
+      });
+    }
 
     res.json({ message: "Gift sent successfully!", gift: userGift });
   } catch (error) {
@@ -28,5 +43,6 @@ router.post("/send", authmiddleware, async (req, res) => {
     res.status(500).json({ error: "Failed to send gift" });
   }
 });
+
 
 module.exports = router;

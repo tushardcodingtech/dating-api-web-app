@@ -5,6 +5,8 @@ const userGiftSchema = new mongoose.Schema({
   senderId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   receiverId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   status: { type: String, default: "sent" },
-}, { timestamps: true });
+  message: { type: String },
+  createdAt: { type: Date, default: Date.now }
+});
 
 module.exports = mongoose.model("UserGift", userGiftSchema);
