@@ -26,23 +26,23 @@ router.post("/send", authmiddleware, async (req, res) => {
     const userGift = await UserGift.create({ giftId, senderId, receiverId });
 
     // WebSocket notification
-//     if (req.wss) {
-//       req.wss.clients.forEach(client => {
-//         if (client.readyState === 1) {
-//           client.send(JSON.stringify({
-//             type: "NEW_GIFT",
-//             data: { giftId, senderId, receiverId }
-//           }));
-//         }
-//       });
-//     }
+    if (req.wss) {
+      req.wss.clients.forEach(client => {
+        if (client.readyState === 1) {
+          client.send(JSON.stringify({
+            type: "NEW_GIFT",
+            data: { giftId, senderId, receiverId }
+          }));
+        }
+      });
+    }
 
-//     res.json({ message: "Gift sent successfully!", gift: userGift });
-//   } catch (error) {
-//     console.error("Send gift error:", error);
-//     res.status(500).json({ error: "Failed to send gift" });
-//   }
-// });
+    res.json({ message: "Gift sent successfully!", gift: userGift });
+  } catch (error) {
+    console.error("Send gift error:", error);
+    res.status(500).json({ error: "Failed to send gift" });
+  }
+});
 
 
 module.exports = router;
