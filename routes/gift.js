@@ -13,7 +13,7 @@ router.get("/", async (req, res) => {
 // Send a gift
 router.post("/send", authmiddleware, async (req, res) => {
   try {
-    const { giftId, receiverId } = req.body;
+    const { giftId, receiverId, message } = req.body;
     const senderId = req.user.id;
 
     if (!giftId || !receiverId) {
@@ -23,7 +23,7 @@ router.post("/send", authmiddleware, async (req, res) => {
     const gift = await Gift.findById(giftId);
     if (!gift) return res.status(404).json({ error: "Gift not found" });
 
-    const userGift = await UserGift.create({ giftId, senderId, receiverId });
+    const userGift = await UserGift.create({ giftId, senderId, receiverId, message });
 
     // WebSocket notification
     if (req.wss) {
