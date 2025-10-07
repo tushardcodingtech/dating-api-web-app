@@ -1,6 +1,7 @@
 const express = require("express");
 const Gift = require("../models/Gift");
 const UserGift = require("../models/UserGift");
+const Message = require("../models/message"); // <-- import Message model
 const router = express.Router();
 const authmiddleware = require("../middleware/auth");
 
@@ -10,19 +11,34 @@ router.get("/", async (req, res) => {
   res.json(gifts);
 });
 
-// Send a gift
+// Send a gift and create a chat message
 router.post("/send", authmiddleware, async (req, res) => {
   try {
-    const { giftId, receiverId } = req.body;
-    const senderId = req.user.id; 
+    const { giftId, receiverId, message: optionalMessage } = req.body;
+    const senderId = req.user.id;
 
+    // Save gift in UserGift
     const userGift = await UserGift.create({
       giftId,
       senderId,
       receiverId,
     });
 
-    res.json({ message: "Gift sent successfully!", gift: userGift });
+    // Fetch gift details
+    const gift = await Gift.findById(giftId);
+
+    // Create a chat message for this gift
+    const chatMessage = await Message.create({
+      sender: senderId,
+      receiver: receiverId,
+      text: `🎁 Sent a gift: ${gift.name}${optionalMessage ? " - " + optionalMessage : ""}`,
+    });
+
+    res.json({ 
+      message: "Gift sent successfully!", 
+      gift: userGift, 
+      chatMessage 
+    });
   } catch (error) {
     console.error("Send gift error:", error);
     res.status(500).json({ error: "Failed to send gift" });
