@@ -20,7 +20,7 @@ router.get("/", async (req, res) => {
 router.post("/send", authmiddleware, async (req, res) => {
   try {
     const { giftId, receiverId, message: optionalMessage } = req.body;
-    const senderId = req.user?.UserId;
+    const senderId = req.user?.userId;
 
     // Validate required fields
     if (!giftId) return res.status(400).json({ error: "giftId is required" });
