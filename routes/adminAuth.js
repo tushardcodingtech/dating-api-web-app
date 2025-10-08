@@ -22,8 +22,16 @@ router.post("/register", async (req, res) => {
     const newAdmin = new Admin({ email, password });
     await newAdmin.save();
 
+    // Create token
+    const token = jwt.sign(
+      { id: newAdmin._id, role: "admin" },
+      process.env.JWT_SECRET || "fallback_secret",
+      { expiresIn: "24h" }
+    );
+
     res.status(201).json({
       message: "Admin created successfully.",
+      token,
       admin: { id: newAdmin._id, email: newAdmin.email },
     });
   } catch (err) {
@@ -45,20 +53,20 @@ router.post("/login", async (req, res) => {
     // Check if admin exists
     const admin = await Admin.findOne({ email });
     if (!admin) {
-      return res.status(401).json({ message: "Invalid email or password." });
+      return res.status(401).json({ message: "Invalid email." });
     }
 
     // Compare password
-    const isMatch = await bcrypt.compare(password, admin.password);
+    const isMatch = await admin.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({ message: "Invalid email or password." });
+      return res.status(401).json({ message: "Invalid password." });
     }
 
     // Generate JWT
     const token = jwt.sign(
       { id: admin._id, role: "admin" },
       process.env.JWT_SECRET || "fallback_secret",
-      { expiresIn: "1d" }
+      { expiresIn: "24" }
     );
 
     return res.json({
