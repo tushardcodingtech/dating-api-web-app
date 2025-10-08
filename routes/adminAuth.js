@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
 const Admin = require("../models/Admin");
 
 // Admin Registration
@@ -19,11 +18,8 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ message: "Admin already exists." });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
     // Create new admin
-    const newAdmin = new Admin({ email, password: hashedPassword });
+    const newAdmin = new Admin({ email, password });
     await newAdmin.save();
 
     res.status(201).json({
