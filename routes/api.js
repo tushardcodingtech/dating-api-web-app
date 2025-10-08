@@ -82,29 +82,42 @@ router.get("/profile/me", auth, async (req, res) => {
   }
 });
 
-// Get all profiles except current user's
+//  Get all profiles except:
+// - current user
+// - users with pending or accepted match requests (either direction)
+// - users already matched
+// (rejected requests are allowed — shown again)
 router.get("/people", auth, async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    //  Get IDs of users this user already sent match requests to
-    const sentRequests = await MatchRequest.find({ sender: userId }).select("receiver");
-    const sentIds = sentRequests.map((r) => r.receiver.toString());
+    //  Find match requests where the user is either sender or receiver
+    const relatedRequests = await MatchRequest.find({
+      $or: [{ sender: userId }, { receiver: userId }],
+      status: { $in: ["pending", "accepted"] }, 
+    }).select("sender receiver");
 
-    //  Get IDs of users who sent match requests to this user
-    const receivedRequests = await MatchRequest.find({ receiver: userId }).select("sender");
-    const receivedIds = receivedRequests.map((r) => r.sender.toString());
+    // Collect IDs of users involved in these requests
+    const relatedUserIds = new Set();
+    for (const reqItem of relatedRequests) {
+      if (reqItem.sender.toString() !== userId) relatedUserIds.add(reqItem.sender.toString());
+      if (reqItem.receiver.toString() !== userId) relatedUserIds.add(reqItem.receiver.toString());
+    }
 
-    //  Get IDs of users already matched with this user
+    //  Get already matched users
     const matches = await Match.find({ users: userId }).select("users");
-    const matchedIds = matches.flatMap((m) => m.users.map((u) => u.toString()));
+    for (const match of matches) {
+      for (const u of match.users) {
+        if (u.toString() !== userId) relatedUserIds.add(u.toString());
+      }
+    }
 
-    //  Combine all IDs to exclude
-    const excludeIds = new Set([...sentIds, ...receivedIds, ...matchedIds, userId]);
+    //  Add yourself to the exclude list
+    relatedUserIds.add(userId);
 
-    //  Fetch profiles not in excluded list
+    //  Find remaining people not in that list
     const people = await FindProfile.find({
-      userId: { $nin: Array.from(excludeIds) },
+      userId: { $nin: Array.from(relatedUserIds) },
     }).populate("userId", "name");
 
     res.json(people);
