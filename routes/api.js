@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const FindProfile = require("../models/FindProfile");
 const auth = require("../middleware/auth");
+const MatchRequest = require("../models/MatchRequest");
+const Match = require("../models/Match");
 
 // Create a new profile
 router.post("/people", auth, async (req, res) => {
