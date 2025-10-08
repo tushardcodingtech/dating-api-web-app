@@ -15,6 +15,7 @@ const messagesRouter = require("./routes/messages");
 const matchRequestRouter = require('./routes/matchRequest');
 const matchRouter = require('./routes/match'); 
 const giftRouter = require('./routes/gift');
+const adminAuthRouter = require('./routes/adminAuth');
 var app = express();
 
 const allowedOrigins  = [
@@ -62,6 +63,7 @@ app.use('/messages', messagesRouter);
 app.use('/match-requests', matchRequestRouter);
 app.use('/matches', matchRouter);
 app.use('/gifts', giftRouter); 
+app.use('/admin', adminAuthRouter);
 
 connectDB().then(() => {
   console.log('MongoDB connected successfully');
