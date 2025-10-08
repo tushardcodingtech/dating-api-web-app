@@ -83,13 +83,32 @@ router.get("/profile/me", auth, async (req, res) => {
 // Get all profiles except current user's
 router.get("/people", auth, async (req, res) => {
   try {
+    const userId = req.user.userId;
+
+    //  Get IDs of users this user already sent match requests to
+    const sentRequests = await MatchRequest.find({ sender: userId }).select("receiver");
+    const sentIds = sentRequests.map((r) => r.receiver.toString());
+
+    //  Get IDs of users who sent match requests to this user
+    const receivedRequests = await MatchRequest.find({ receiver: userId }).select("sender");
+    const receivedIds = receivedRequests.map((r) => r.sender.toString());
+
+    //  Get IDs of users already matched with this user
+    const matches = await Match.find({ users: userId }).select("users");
+    const matchedIds = matches.flatMap((m) => m.users.map((u) => u.toString()));
+
+    //  Combine all IDs to exclude
+    const excludeIds = new Set([...sentIds, ...receivedIds, ...matchedIds, userId]);
+
+    //  Fetch profiles not in excluded list
     const people = await FindProfile.find({
-      userId: { $ne: req.user.userId }
+      userId: { $nin: Array.from(excludeIds) },
     }).populate("userId", "name");
-    
+
     res.json(people);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Error fetching people:", err);
+    res.status(500).json({ message: "Error fetching people", error: err.message });
   }
 });
 
