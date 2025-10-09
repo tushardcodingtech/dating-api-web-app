@@ -57,7 +57,7 @@ router.post("/login", async (req, res) => {
     }
 
     // Compare password
-    const isMatch = await admin.comparePassword(password);
+    const isMatch = await admin.matchPassword(password);
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid password." });
     }
@@ -66,7 +66,7 @@ router.post("/login", async (req, res) => {
     const token = jwt.sign(
       { id: admin._id, role: "admin" },
       process.env.JWT_SECRET || "fallback_secret",
-      { expiresIn: "24" }
+      { expiresIn: "24h" }
     );
 
     return res.json({
