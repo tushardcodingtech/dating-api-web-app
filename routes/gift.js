@@ -16,6 +16,36 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Create a new gift
+router.post("/", authmiddleware, async (req, res) => {
+  try {
+    const { name, price, image, description } = req.body;
+
+    // Basic validation
+    if (!name || price == null) {
+      return res.status(400).json({ error: "Name and price are required" });
+    }
+
+    // Create new gift
+    const newGift = new Gift({
+      name,
+      price,
+      image,
+      description,
+    });
+
+    await newGift.save();
+
+    res.status(201).json({
+      message: "Gift created successfully",
+      gift: newGift,
+    });
+  } catch (err) {
+    console.error("Error creating gift:", err);
+    res.status(500).json({ error: "Failed to create gift" });
+  }
+});
+
 // Send a gift and create a chat message
 router.post("/send", authmiddleware, async (req, res) => {
   try {
