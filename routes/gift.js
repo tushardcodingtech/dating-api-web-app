@@ -17,7 +17,7 @@ router.get("/", async (req, res) => {
 });
 
 // Create a new gift
-router.post("/", authmiddleware, async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const { name, price, image, description } = req.body;
 
