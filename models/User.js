@@ -2,6 +2,12 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+
   email: {
     type: String,
     required: true,
@@ -9,33 +15,57 @@ const userSchema = new mongoose.Schema({
     trim: true,
     lowercase: true,
   },
+
+  phone: {
+    type: String,
+    required: false,
+    trim: true,
+  },
+
   password: {
     type: String,
     required: true,
     minlength: 6,
   },
-  name: {
-    type: String,
-    required: true,
-    trim: true,
-  },
 
-  dob: {
-    type: Date,
-    required: false, 
-  },
+  // ⚠️ Don't store confirmPassword in DB, handle it only in validation layer (frontend or controller)
+  // confirmPassword: never store this in DB
+
   gender: {
     type: String,
     enum: ["male", "female", "other"],
     required: false,
   },
-  category: {
-    type: String, 
-    default: null,
+
+  dob: {
+    type: Date,
+    required: false,
   },
+
+  location: {
+    type: String,
+    required: false,
+  },
+
+  maritalStatus: {
+    type: String,
+    enum: ["single", "married", "divorced", "widowed"],
+    required: false,
+  },
+
   interests: {
     type: [String],
     default: [],
+  },
+
+  category: {
+    type: String,
+    default: null,
+  },
+
+  agree: {
+    type: Boolean,
+    default: false,
   },
 
   createdAt: {
@@ -44,7 +74,8 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-//  Virtual field to calculate age from dob
+
+//  Virtual field to calculate age from DOB
 userSchema.virtual("age").get(function () {
   if (!this.dob) return null;
   const diff = Date.now() - this.dob.getTime();
@@ -52,7 +83,7 @@ userSchema.virtual("age").get(function () {
   return Math.abs(ageDate.getUTCFullYear() - 1970);
 });
 
-//  Ensure virtuals are included in JSON responses
+// Include virtuals in responses
 userSchema.set("toJSON", { virtuals: true });
 userSchema.set("toObject", { virtuals: true });
 
