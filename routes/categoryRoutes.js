@@ -6,8 +6,7 @@ const {
   selectCategory, 
   getCategoryResults,
 } = require("../controllers/categoryController");
-const { protect } = require("../middleware/authMiddleware");
-
+const auth = require("../middleware/auth");
 const router = express.Router();
 
 router.post("/seed", seedCategories);
@@ -16,7 +15,7 @@ router.get("/", getCategories);
 
 router.get("/:id", getCategoryById);
 
-router.post("/select", protect, selectCategory);
+router.post("/select", auth, selectCategory);
 
 router.get("/results/:categoryName", protect, getCategoryResults);
 
