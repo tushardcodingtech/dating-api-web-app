@@ -1,12 +1,14 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const categorySchema = new mongoose.Schema({
-  icon: { type: String, required: true },
+  icon: String,
   title: { type: String, required: true },
-  tagline: { type: String },
-  desc: { type: String },
-  gradient: { type: String },
-  image: { type: String },
-}, { timestamps: true });
+  tagline: String,
+  desc: String,
+  gradient: String,
+  image: String,
+  interests: [String],
+  createdAt: { type: Date, default: Date.now },
+});
 
 module.exports = mongoose.model("Category", categorySchema);

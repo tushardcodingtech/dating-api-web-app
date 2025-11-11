@@ -42,6 +42,12 @@ const corsOptions = {
   preflightContinue: false,
   optionsSuccessStatus: 204
 };
+connectDB().then(() => {
+  console.log('MongoDB connected successfully');
+}).catch(err => {
+  console.error('Failed to connect to MongoDB', err);
+  process.exit(1);
+});
 
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions)); // handle preflight requests
