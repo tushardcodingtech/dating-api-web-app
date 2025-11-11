@@ -1,5 +1,5 @@
-import Category from "../models/Category.js";
-import { categoryData } from "../seed/categoryData.js";
+const Category = require("../models/Category");
+const categoryData = require("../seed/categoryData");
 
 // Seed static data (only once)
 export const seedCategories = async (req, res) => {
