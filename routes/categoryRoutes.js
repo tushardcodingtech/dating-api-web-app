@@ -1,9 +1,5 @@
-import express from "express";
-import {
-  seedCategories,
-  getCategories,
-  getCategoryById,
-} from "../controllers/categoryController.js";
+const express = require("express");
+const { seedCategories, getCategories, getCategoryById } = require("../controllers/categoryController");
 
 const router = express.Router();
 
@@ -11,4 +7,4 @@ router.post("/seed", seedCategories);
 router.get("/", getCategories);
 router.get("/:id", getCategoryById);
 
-export default router;
+module.exports = router;
