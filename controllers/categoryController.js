@@ -2,7 +2,7 @@ const Category = require("../models/Category");
 const categoryData = require("../seed/categoryData");
 
 // Seed static data (only once)
-export const seedCategories = async (req, res) => {
+const seedCategories = async (req, res) => {
   try {
     const existing = await Category.countDocuments();
     if (existing > 0)
@@ -16,7 +16,7 @@ export const seedCategories = async (req, res) => {
 };
 
 // Fetch all categories
-export const getCategories = async (req, res) => {
+const getCategories = async (req, res) => {
   try {
     const categories = await Category.find().sort({ createdAt: 1 });
     res.json(categories);
@@ -26,7 +26,7 @@ export const getCategories = async (req, res) => {
 };
 
 // Fetch category details (for “click” view)
-export const getCategoryById = async (req, res) => {
+const getCategoryById = async (req, res) => {
   try {
     const category = await Category.findById(req.params.id);
     if (!category) return res.status(404).json({ message: "Not found" });
@@ -43,3 +43,5 @@ export const getCategoryById = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+module.exports = { seedCategories, getCategories, getCategoryById };

@@ -1,4 +1,4 @@
-export const categoryData = [
+module.exports = [
   {
     icon: "💞",
     title: "Young Hearts (18-25)",
