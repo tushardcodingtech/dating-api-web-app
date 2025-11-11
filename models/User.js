@@ -27,10 +27,7 @@ const userSchema = new mongoose.Schema({
     required: true,
     minlength: 6,
   },
-
-  // ⚠️ Don't store confirmPassword in DB, handle it only in validation layer (frontend or controller)
-  // confirmPassword: never store this in DB
-
+  
   gender: {
     type: String,
     enum: ["male", "female", "other"],
