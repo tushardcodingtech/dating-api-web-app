@@ -17,6 +17,6 @@ router.get("/:id", getCategoryById);
 
 router.post("/select", auth, selectCategory);
 
-router.get("/results/:categoryName", protect, getCategoryResults);
+router.get("/results/:categoryName", auth, getCategoryResults);
 
 module.exports = router;
