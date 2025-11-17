@@ -52,7 +52,7 @@ const selectCategory = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    
+
     const { category } = req.body;
     if (!category)
       return res.status(400).json({ message: "Category is required" });
@@ -96,26 +96,75 @@ const selectCategory = async (req, res) => {
 // ====================
 //  Get results (matches) by category
 // ====================
+
+// Utility: calculate age
+function calculateAge(dob) {
+  const birthDate = new Date(dob);
+  const diff = Date.now() - birthDate.getTime();
+  return new Date(diff).getUTCFullYear() - 1970;
+}
+
 const getCategoryResults = async (req, res) => {
   try {
-    const user = req.user;
+    const loggedInUser = req.user;
     const { categoryName } = req.params;
 
-    // Find other users in same category
-    const matches = await User.find({
-      category: categoryName,
-      _id: { $ne: user._id }, // exclude current user
-    }).select("name gender interests dob category");
+    // Get rules for selected category
+    const rules = categoryRules[categoryName];
+    if (!rules) {
+      return res.status(400).json({ error: "Invalid category" });
+    }
+
+    const query = {
+      _id: { $ne: loggedInUser._id }, // exclude current user
+    };
+
+    // Apply gender rule if exists
+    if (rules.gender) {
+      query.gender = rules.gender;
+    }
+
+    // Filter using date-based age (convert minAge/maxAge to DOB range)
+    const today = new Date();
+
+    if (rules.minAge || rules.maxAge) {
+      query.dob = {};
+
+      if (rules.minAge) {
+        const maxDOB = new Date(today.setFullYear(today.getFullYear() - rules.minAge));
+        query.dob.$lte = maxDOB;
+      }
+
+      today.setFullYear(today.getFullYear() + (rules.minAge || 0)); // reset
+
+      if (rules.maxAge) {
+        const minDOB = new Date(today.setFullYear(today.getFullYear() - rules.maxAge));
+        query.dob.$gte = minDOB;
+      }
+    }
+
+    // Fetch matching users
+    const matches = await User.find(query).select("name gender dob interests category");
+
+    // Add calculated age
+    const matchesWithAge = matches.map(u => ({
+      ...u._doc,
+      age: calculateAge(u.dob)
+    }));
+
+    // Current User Age
+    const loggedUserAge = calculateAge(loggedInUser.dob);
 
     res.json({
       category: categoryName,
       user: {
-        name: user.name,
-        age: user.age,
-        gender: user.gender,
+        name: loggedInUser.name,
+        age: loggedUserAge,
+        gender: loggedInUser.gender,
       },
-      matches,
+      matches: matchesWithAge,
     });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
