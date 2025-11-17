@@ -113,7 +113,7 @@ const getCategoryResults = async (req, res) => {
     if (!rules) return res.status(400).json({ error: "Invalid category" });
 
     const query = {
-      _id: { $ne: loggedInUser._id }, // exclude current user
+      _id: { $ne: new mongoose.Types.ObjectId(loggedInUser._id) }, // exclude current user
     };
 
     // Gender rule
