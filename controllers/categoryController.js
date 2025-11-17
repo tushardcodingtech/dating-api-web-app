@@ -48,9 +48,12 @@ const getCategoryById = async (req, res) => {
 // ====================
 const selectCategory = async (req, res) => {
   try {
-    const user = req.user; // comes from auth middleware
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
     const { category } = req.body;
-
     if (!category)
       return res.status(400).json({ message: "Category is required" });
 
