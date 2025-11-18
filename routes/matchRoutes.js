@@ -21,4 +21,7 @@ router.post("/accept", auth, acceptRequest);
 // Reject request
 router.post("/reject", auth, rejectRequest);
 
+// Additional route to get user chats
+router.get("/chats", auth, getUserChats);
+
 module.exports = router;

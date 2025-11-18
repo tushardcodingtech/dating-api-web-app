@@ -6,12 +6,14 @@ exports.sendRequest = async (req, res) => {
     const { receiverId } = req.body;
     const senderId = req.user.userId;
 
-    // Prevent sending request to self
+    // Prevent sending request to yourself
     if (receiverId === senderId) {
-      return res.status(400).json({ message: "You cannot send request to yourself" });
+      return res
+        .status(400)
+        .json({ message: "You cannot send request to yourself" });
     }
 
-    // Check if request already exists
+    // Check if pending request already sent
     const existing = await MatchRequest.findOne({
       senderId,
       receiverId,
@@ -22,6 +24,31 @@ exports.sendRequest = async (req, res) => {
       return res.status(400).json({ message: "Request already sent" });
     }
 
+    // Check reverse request
+    const reverse = await MatchRequest.findOne({
+      senderId: receiverId,
+      receiverId: senderId,
+      status: "pending",
+    });
+
+    if (reverse) {
+      return res
+        .status(400)
+        .json({ message: "This user already sent you a request" });
+    }
+
+    // Check already matched
+    const matched = await MatchRequest.findOne({
+      $or: [
+        { senderId, receiverId, status: "accepted" },
+        { senderId: receiverId, receiverId: senderId, status: "accepted" },
+      ],
+    });
+
+    if (matched) {
+      return res.status(400).json({ message: "You are already matched" });
+    }
+
     // Create request
     await MatchRequest.create({ senderId, receiverId });
 
@@ -30,6 +57,7 @@ exports.sendRequest = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 
 exports.getRequests = async (req, res) => {
@@ -80,4 +108,16 @@ exports.rejectRequest = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+};
+
+exports.getUserChats = async (req, res) => {
+  const userId = req.user.userId;
+
+  const chats = await Chat.find({
+    participants: userId,
+  })
+    .populate("participants", "name email")
+    .sort({ updatedAt: -1 });
+
+  res.json(chats);
 };
