@@ -7,6 +7,7 @@ const {
   getRequests,
   acceptRequest,
   rejectRequest,
+  getUserChats,
 } = require("../controllers/matchController");
 
 // Send request
