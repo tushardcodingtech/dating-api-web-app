@@ -18,6 +18,7 @@ const giftRouter = require('./routes/gift');
 const adminAuthRouter = require('./routes/adminAuth');
 const categoryRoutesRouter = require('./routes/categoryRoutes');
 const profileRoutes = require('./routes/profileRoutes');
+const matchRoutes = require('./routes/matchRoutes');
 
 var app = express();
 
@@ -75,6 +76,7 @@ app.use('/gifts', giftRouter);
 app.use('/admin', adminAuthRouter);
 app.use('/categories', categoryRoutesRouter);
 app.use('/profile', profileRoutes); 
+app.use('/match', matchRoutes);
 
 connectDB().then(() => {
   console.log('MongoDB connected successfully');
