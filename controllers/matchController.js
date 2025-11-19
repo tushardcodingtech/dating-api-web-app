@@ -86,9 +86,8 @@ exports.acceptRequest = async (req, res) => {
     request.status = "accepted";
     await request.save();
 
-    // Create chat
     const chat = await Chat.create({
-      members: [request.senderId, request.receiverId],
+      participants: [request.senderId, request.receiverId],
     });
 
     res.json({ message: "Request accepted", chatId: chat._id });
@@ -96,6 +95,7 @@ exports.acceptRequest = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 
 exports.rejectRequest = async (req, res) => {
