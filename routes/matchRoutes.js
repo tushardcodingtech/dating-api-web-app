@@ -8,6 +8,8 @@ const {
   acceptRequest,
   rejectRequest,
   getUserChats,
+  getChatById,
+  sendMessage,
 } = require("../controllers/matchController");
 
 // Send request
