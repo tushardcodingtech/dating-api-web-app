@@ -22,7 +22,13 @@ router.post("/accept", auth, acceptRequest);
 // Reject request
 router.post("/reject", auth, rejectRequest);
 
-// Additional route to get user chats
+// Route to get user chats
 router.get("/chats", auth, getUserChats);
+
+// Routes for chat functionality
+router.get("/chats/:chatId", auth, getChatById);
+
+// Send message in a chat
+router.post("/chats/:chatId/message", auth, sendMessage);
 
 module.exports = router;

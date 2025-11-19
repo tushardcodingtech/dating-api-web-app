@@ -121,3 +121,49 @@ exports.getUserChats = async (req, res) => {
 
   res.json(chats);
 };
+
+exports.getChatById = async (req, res) => {
+  try {
+    const chatId = req.params.chatId;
+
+    const chat = await Chat.findById(chatId)
+      .populate("participants", "name email")
+      .populate("messages.sender", "name email");
+
+    if (!chat) return res.status(404).json({ message: "Chat not found" });
+
+    return res.json({
+      ...chat.toObject(),
+      currentUser: req.user.userId, // important for frontend message bubble alignment
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.sendMessage = async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const { text } = req.body;
+
+    if (!text || text.trim() === "")
+      return res.status(400).json({ message: "Message text is required" });
+
+    const chat = await Chat.findById(chatId);
+    if (!chat) return res.status(404).json({ message: "Chat not found" });
+
+    chat.messages.push({
+      sender: req.user.userId,
+      text,
+    });
+
+    // Update last message time
+    chat.updatedAt = new Date();
+
+    await chat.save();
+
+    return res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
