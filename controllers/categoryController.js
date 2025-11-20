@@ -3,6 +3,7 @@ const MatchRequest = require("../models/MatchRequest");
 const User = require("../models/User");
 const categoryData = require("../seed/categoryData");
 const { categoryRules } = require("../utils/categoryRules");
+const mongoose = require("mongoose");
 
 // ====================
 // Seed static categories
@@ -106,7 +107,6 @@ function calculateAge(dob) {
 
 const getCategoryResults = async (req, res) => {
   try {
-    const loggedInUser = req.user;
     const { categoryName } = req.params;
 
     const rules = categoryRules[categoryName];
@@ -117,27 +117,35 @@ const getCategoryResults = async (req, res) => {
     // ==============================
     // EXCLUDE USERS WITH PENDING REQUESTS
     // ==============================
+    // auth middleware sets req.user as { userId: ... }
+    const userIdString = req.user?.userId || req.user?._id;
+    if (!userIdString) {
+      return res.status(400).json({ error: "Invalid auth payload: missing user id" });
+    }
+    const currentUserId = new mongoose.Types.ObjectId(userIdString);
+
     const pendingRequests = await MatchRequest.find({
       $or: [
-        { senderId: loggedInUser._id },
-        { receiverId: loggedInUser._id }
+        { senderId: currentUserId },
+        { receiverId: currentUserId }
       ],
       status: "pending",
     });
 
-    const excludeIds = pendingRequests.flatMap(req => [
-      req.senderId.toString(),
-      req.receiverId.toString(),
-    ]);
+    const idsToExclude = new Set();
+    for (const r of pendingRequests) {
+      idsToExclude.add(r.senderId.toString());
+      idsToExclude.add(r.receiverId.toString());
+    }
+    // remove self id
+    idsToExclude.delete(currentUserId.toString());
 
-    const finalExcludeIds = excludeIds.filter(
-      id => id !== loggedInUser._id.toString()
-    );
+    const finalExcludeObjectIds = Array.from(idsToExclude).map(id => new mongoose.Types.ObjectId(id));
 
     // Add exclusion rule
-    query._id = { 
-      $ne: loggedInUser._id,
-      $nin: finalExcludeIds
+    query._id = {
+      $ne: currentUserId,
+      $nin: finalExcludeObjectIds,
     };
 
     // ==============================
