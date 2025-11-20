@@ -97,15 +97,6 @@ const selectCategory = async (req, res) => {
 //  Get results (matches)
 // ====================
 
-// Fetch all pending requests involving logged-in user
-const pendingRequests = await MatchRequest.find({
-  $or: [
-    { senderId: loggedInUser._id, status: "pending" },   // requests I sent
-    { receiverId: loggedInUser._id, status: "pending" }, // requests others sent me
-  ],
-}).select("senderId receiverId");
-
-
 // Utility: calculate age
 function calculateAge(dob) {
   const birthDate = new Date(dob);
