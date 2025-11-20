@@ -104,8 +104,6 @@ function calculateAge(dob) {
   return new Date(diff).getUTCFullYear() - 1970;
 }
 
-const MatchRequest = require("../models/MatchRequest");
-
 const getCategoryResults = async (req, res) => {
   try {
     const loggedInUser = req.user;
