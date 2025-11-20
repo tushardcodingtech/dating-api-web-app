@@ -181,7 +181,7 @@ const getCategoryResults = async (req, res) => {
 
     res.json({
       category: categoryName,
-      user: loggedInUser,
+      user: req.user,
       matches: matchesWithAge,
     });
 
