@@ -1,4 +1,3 @@
-const mongoose = require("mongoose");
 const Category = require("../models/Category");
 const MatchRequest = require("../models/MatchRequest");
 const User = require("../models/User");
@@ -137,7 +136,9 @@ const getCategoryResults = async (req, res) => {
     });
 
     // Remove loggedInUser ID from block list
-    const finalExcludeObjectIds = finalExcludeIds.map(id => new mongoose.Types.ObjectId(id));
+    const finalExcludeIds = excludeIds.filter(
+      id => id !== loggedInUser._id.toString()
+    );
 
     // -------------------------------------------------------
     //  3. Build the query
@@ -150,7 +151,7 @@ const getCategoryResults = async (req, res) => {
     const query = {
       _id: {
         $ne: loggedInUser._id,
-        $nin: finalExcludeObjectIds //  IMPORTANT LINE
+        $nin: finalExcludeIds //  IMPORTANT LINE
       }
     };
 
