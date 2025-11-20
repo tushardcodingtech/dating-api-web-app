@@ -98,7 +98,6 @@ const selectCategory = async (req, res) => {
 //  Get results (matches)
 // ====================
 
-// Utility: calculate age
 function calculateAge(dob) {
   const birthDate = new Date(dob);
   const diff = Date.now() - birthDate.getTime();
@@ -113,33 +112,53 @@ const getCategoryResults = async (req, res) => {
     const rules = categoryRules[categoryName];
     if (!rules) return res.status(400).json({ error: "Invalid category" });
 
-    //  Fetch pending requests involving logged-in user
-    const pendingRequests = await MatchRequest.find({
+    // -------------------------------------------------------
+    //  1. FIND ALL PENDING + ACCEPTED REQUESTS OF THIS USER
+    // -------------------------------------------------------
+
+    const relatedRequests = await MatchRequest.find({
       $or: [
-        { senderId: loggedInUser._id, status: "pending" },
-        { receiverId: loggedInUser._id, status: "pending" }
-      ]
+        { senderId: loggedInUser._id },
+        { receiverId: loggedInUser._id }
+      ],
+      status: { $in: ["pending", "accepted"] }
     }).select("senderId receiverId");
 
-    // Extract IDs to exclude
-    const excludeUserIds = pendingRequests.map(req =>
-      req.senderId.toString() === loggedInUser._id.toString()
-        ? req.receiverId
-        : req.senderId
+    // -------------------------------------------------------
+    //  2. Create exclusion list
+    // -------------------------------------------------------
+
+    const excludeIds = [];
+
+    relatedRequests.forEach(req => {
+      excludeIds.push(req.senderId.toString());
+      excludeIds.push(req.receiverId.toString());
+    });
+
+    // Remove loggedInUser ID from block list
+    const finalExcludeIds = excludeIds.filter(
+      id => id !== loggedInUser._id.toString()
     );
 
-    //  Build main query
+    // -------------------------------------------------------
+    //  3. Build the query
+    // Users should NOT appear if:
+    // - Already sent a request
+    // - Already received a request
+    // - Accepted match
+    // -------------------------------------------------------
+
     const query = {
-      _id: { 
+      _id: {
         $ne: loggedInUser._id,
-        $nin: excludeUserIds  // 🚀 Hide profiles with pending requests
+        $nin: finalExcludeIds //  IMPORTANT LINE
       }
     };
 
     // Gender rule
     if (rules.gender) query.gender = rules.gender;
 
-    // Age rule
+    // Age rules
     if (rules.minAge || rules.maxAge) {
       query.dob = {};
 
@@ -156,7 +175,13 @@ const getCategoryResults = async (req, res) => {
       }
     }
 
-    const matches = await User.find(query).select("name gender dob interests category");
+    // -------------------------------------------------------
+    //  4. Fetch users
+    // -------------------------------------------------------
+
+    const matches = await User.find(query).select(
+      "name gender dob interests category image"
+    );
 
     const matchesWithAge = matches.map(u => ({
       ...u._doc,
@@ -164,6 +189,10 @@ const getCategoryResults = async (req, res) => {
     }));
 
     const loggedUserAge = calculateAge(loggedInUser.dob);
+
+    // -------------------------------------------------------
+    //  5. Return response
+    // -------------------------------------------------------
 
     res.json({
       category: categoryName,
@@ -176,6 +205,7 @@ const getCategoryResults = async (req, res) => {
     });
 
   } catch (err) {
+    console.log("Category error:", err);
     res.status(500).json({ error: err.message });
   }
 };
