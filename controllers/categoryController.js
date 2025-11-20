@@ -1,4 +1,5 @@
 const Category = require("../models/Category");
+const MatchRequest = require("../models/MatchRequest");
 const User = require("../models/User");
 const categoryData = require("../seed/categoryData");
 const { categoryRules } = require("../utils/categoryRules");
