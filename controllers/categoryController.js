@@ -97,6 +97,15 @@ const selectCategory = async (req, res) => {
 //  Get results (matches)
 // ====================
 
+// Fetch all pending requests involving logged-in user
+const pendingRequests = await MatchRequest.find({
+  $or: [
+    { senderId: loggedInUser._id, status: "pending" },   // requests I sent
+    { receiverId: loggedInUser._id, status: "pending" }, // requests others sent me
+  ],
+}).select("senderId receiverId");
+
+
 // Utility: calculate age
 function calculateAge(dob) {
   const birthDate = new Date(dob);
@@ -112,14 +121,33 @@ const getCategoryResults = async (req, res) => {
     const rules = categoryRules[categoryName];
     if (!rules) return res.status(400).json({ error: "Invalid category" });
 
+    //  Fetch pending requests involving logged-in user
+    const pendingRequests = await MatchRequest.find({
+      $or: [
+        { senderId: loggedInUser._id, status: "pending" },
+        { receiverId: loggedInUser._id, status: "pending" }
+      ]
+    }).select("senderId receiverId");
+
+    // Extract IDs to exclude
+    const excludeUserIds = pendingRequests.map(req =>
+      req.senderId.toString() === loggedInUser._id.toString()
+        ? req.receiverId
+        : req.senderId
+    );
+
+    //  Build main query
     const query = {
-      _id: { $ne: loggedInUser._id }, // exclude current user
+      _id: { 
+        $ne: loggedInUser._id,
+        $nin: excludeUserIds  // 🚀 Hide profiles with pending requests
+      }
     };
 
     // Gender rule
     if (rules.gender) query.gender = rules.gender;
 
-    // DOB (age) rules — FIXED VERSION
+    // Age rule
     if (rules.minAge || rules.maxAge) {
       query.dob = {};
 
@@ -159,7 +187,6 @@ const getCategoryResults = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
 
 module.exports = {
   seedCategories,
