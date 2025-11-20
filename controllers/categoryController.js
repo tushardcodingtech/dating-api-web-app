@@ -104,6 +104,8 @@ function calculateAge(dob) {
   return new Date(diff).getUTCFullYear() - 1970;
 }
 
+const MatchRequest = require("../models/MatchRequest");
+
 const getCategoryResults = async (req, res) => {
   try {
     const loggedInUser = req.user;
@@ -112,53 +114,42 @@ const getCategoryResults = async (req, res) => {
     const rules = categoryRules[categoryName];
     if (!rules) return res.status(400).json({ error: "Invalid category" });
 
-    // -------------------------------------------------------
-    //  1. FIND ALL PENDING + ACCEPTED REQUESTS OF THIS USER
-    // -------------------------------------------------------
+    let query = {};
 
-    const relatedRequests = await MatchRequest.find({
+    // ==============================
+    // EXCLUDE USERS WITH PENDING REQUESTS
+    // ==============================
+    const pendingRequests = await MatchRequest.find({
       $or: [
         { senderId: loggedInUser._id },
         { receiverId: loggedInUser._id }
       ],
-      status: { $in: ["pending", "accepted"] }
-    }).select("senderId receiverId");
-
-    // -------------------------------------------------------
-    //  2. Create exclusion list
-    // -------------------------------------------------------
-
-    const excludeIds = [];
-
-    relatedRequests.forEach(req => {
-      excludeIds.push(req.senderId.toString());
-      excludeIds.push(req.receiverId.toString());
+      status: "pending",
     });
 
-    // Remove loggedInUser ID from block list
+    const excludeIds = pendingRequests.flatMap(req => [
+      req.senderId.toString(),
+      req.receiverId.toString(),
+    ]);
+
     const finalExcludeIds = excludeIds.filter(
       id => id !== loggedInUser._id.toString()
     );
 
-    // -------------------------------------------------------
-    //  3. Build the query
-    // Users should NOT appear if:
-    // - Already sent a request
-    // - Already received a request
-    // - Accepted match
-    // -------------------------------------------------------
-
-    const query = {
-      _id: {
-        $ne: loggedInUser._id,
-        $nin: finalExcludeIds //  IMPORTANT LINE
-      }
+    // Add exclusion rule
+    query._id = { 
+      $ne: loggedInUser._id,
+      $nin: finalExcludeIds
     };
 
-    // Gender rule
+    // ==============================
+    // Gender Rule
+    // ==============================
     if (rules.gender) query.gender = rules.gender;
 
-    // Age rules
+    // ==============================
+    // Age Filters
+    // ==============================
     if (rules.minAge || rules.maxAge) {
       query.dob = {};
 
@@ -175,40 +166,24 @@ const getCategoryResults = async (req, res) => {
       }
     }
 
-    // -------------------------------------------------------
-    //  4. Fetch users
-    // -------------------------------------------------------
-
-    const matches = await User.find(query).select(
-      "name gender dob interests category image"
-    );
+    const matches = await User.find(query).select("name gender dob interests category");
 
     const matchesWithAge = matches.map(u => ({
       ...u._doc,
       age: calculateAge(u.dob)
     }));
 
-    const loggedUserAge = calculateAge(loggedInUser.dob);
-
-    // -------------------------------------------------------
-    //  5. Return response
-    // -------------------------------------------------------
-
     res.json({
       category: categoryName,
-      user: {
-        name: loggedInUser.name,
-        age: loggedUserAge,
-        gender: loggedInUser.gender,
-      },
+      user: loggedInUser,
       matches: matchesWithAge,
     });
 
   } catch (err) {
-    console.log("Category error:", err);
     res.status(500).json({ error: err.message });
   }
 };
+
 
 module.exports = {
   seedCategories,
